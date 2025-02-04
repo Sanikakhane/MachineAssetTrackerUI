@@ -1,0 +1,215 @@
+﻿@page "/machine-assets"
+@using MachineAssetTrackerUI.Models
+@using MachineAssetTrackerUI.Services
+@inject MachineAssetTrackerUI.Services.MachineAssetService MachineAssetService
+@rendermode InteractiveServer
+
+<h3 class="text-center text-primary mt-4">Machine Asset Tracker</h3>
+
+<div class="container mt-4">
+    <div class="row">
+        
+        <div class="col-md-7">
+            <div class="card shadow-lg">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0">Machine Assets List</h5>
+                </div>
+                <div class="card-body">
+                    @if (machineAssets == null)
+                    {
+                        <p>Loading...</p>
+                    }
+                    else if (!machineAssets.Any())
+                    {
+                        <p class="text-danger">No records found.</p>
+                    }
+                    else
+                    {
+                        @if (machineAssets != null && machineAssets.Any())
+                        {
+                            <table class="table table-striped table-hover">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>Machine Type</th>
+                                        <th>Asset Name</th>
+                                        <th>Series</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var asset in machineAssets)
+                                    {
+                                        <tr>
+                                            <td>@asset.MachineType</td>
+                                            <td>@asset.Asset</td>
+                                            <td>@asset.Series</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        }
+                        else if (noMachineAssetsFound)
+                        {
+                            <p class="text-danger">No records found.</p>
+                        }
+                    }
+                </div>
+            </div>
+        </div>
+
+       
+        <div class="col-md-5">
+            <div class="card shadow-lg">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Search Machine Assets</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Find Assets by Machine Type</label>
+                        <input type="text" @bind="machineTypeInput" class="form-control" placeholder="Enter Machine Type" />
+                        <button class="btn btn-primary w-100 mt-2" @onclick="FetchAssetsByMachine">Get Assets</button>
+                        @if(machineTypeInput==string.Empty)
+                        {
+                            <p class="text-danger">Field can not be empty.</p>
+                        }
+                        @if (assets != null && assets.Any())
+                        {
+                        <ul class="mt-2">
+                            @foreach (var asset in assets)
+                            {
+                                <li>@asset</li>
+                            }
+                        </ul>
+                        }
+                        else if (noAssetsFound)
+                        {
+                             <p class="text-danger">No assets found for this machine type.</p>
+                        }
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Find Machines by Asset Name</label>
+                        <input type="text" @bind="assetNameInput" class="form-control" placeholder="Enter Asset Name" />
+                        <button class="btn btn-success w-100 mt-2" @onclick="FetchMachineByAsset">Get Machines</button>
+                        @if (machines != null && machines.Any())
+                        {
+                            <ul class="mt-2">
+                                @foreach (var machine in machines)
+                                {
+                                    <li>@machine</li>
+                                }
+                            </ul>
+                        }
+                        else if (noMachinesFound)
+                        {
+                            <p class="text-danger">No machines found for this asset name.</p>
+                        }
+
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Find Machines Using Latest Series</label>
+                        <button class="btn btn-warning w-100" @onclick="FetchMachinesUsingLatestSeries">Get Machines</button>
+                        @if (latestMachineResult != null && latestMachineResult.Any())
+                        {
+                            <ul class="mt-2">
+                                @foreach (var machine in latestMachineResult)
+                                {
+                                    <li>@machine</li>
+                                }
+                            </ul>
+                        }
+                        else if (noLatestMachinesFound)
+                        {
+                            
+                            <p class="text-danger">No machines found using the latest series.</p>
+                        }
+
+                       
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<MachineAsset> machineAssets;
+    private List<string> machines = new();
+    private List<string> assets = new();
+    private string machineTypeInput = "";
+    private string assetNameInput = "";
+    private List<string> latestMachineResult ;
+    private bool noMachineAssetsFound = false;
+    private bool noAssetsFound = false;
+    private bool noMachinesFound = false;
+    private bool noLatestMachinesFound = false;
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            machineAssets = await MachineAssetService.GetMachineAssetsAsync();
+            if (machineAssets == null || !machineAssets.Any())
+            {
+                noMachineAssetsFound = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error fetching machine assets: {ex.Message}");
+            noMachineAssetsFound = true;  
+        }
+    }
+
+    private async Task FetchAssetsByMachine()
+    {
+        try
+        {
+            assets = await MachineAssetService.GetAssestsByMachineAsync(machineTypeInput);
+            if (assets == null || !assets.Any())
+            {
+                noAssetsFound = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error fetching assets: {ex.Message}");
+            noAssetsFound = true; // Display a message in case of an error
+        }
+    }
+
+    private async Task FetchMachineByAsset()
+    {
+        try
+        {
+            machines = await MachineAssetService.GetMachineByAsset(assetNameInput);
+            if (machines == null || !machines.Any())
+            {
+                noMachinesFound = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error fetching machines: {ex.Message}");
+            noMachinesFound = true;
+        }
+    }
+
+    private async Task FetchMachinesUsingLatestSeries()
+    {
+        try
+        {
+            latestMachineResult = await MachineAssetService.GetMachineUsingLatestSeries();
+            if (latestMachineResult == null || !latestMachineResult.Any())
+            {
+                noLatestMachinesFound = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error fetching machines using latest series: {ex.Message}");
+            noLatestMachinesFound = true;
+        }
+    }
+}
